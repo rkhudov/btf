@@ -69,6 +69,20 @@ pub struct IntructionPosition {
     position: usize,
 }
 
+impl IntructionPosition {
+    pub fn instruction(&self) -> &RawInstructions {
+        &self.instruction
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn position(&self) -> usize {
+        self.position
+    }
+}
+
 impl fmt::Display for IntructionPosition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -96,7 +110,9 @@ impl BrainFuckProgram {
         let mut line: usize = 1;
         let mut position: usize = 1;
         for char in content.chars() {
-            position += 1;
+            println!("{}", char);
+            println!("{}", line);
+            println!("{}", position);
             if char == '\n' {
                 line += 1;
                 position = 0;
@@ -112,6 +128,7 @@ impl BrainFuckProgram {
                 }
                 Err(_e) => {}
             }
+            position += 1;
         }
         BrainFuckProgram {
             filename,
@@ -120,8 +137,8 @@ impl BrainFuckProgram {
     }
 
     /// Get name of the file from where BF program is parsed.
-    pub fn filename(&self) -> &String {
-        &self.filename
+    pub fn filename(&self) -> String {
+        self.filename.clone()
     }
 
     /// Get list of instructions for BF program.
@@ -135,5 +152,37 @@ impl BrainFuckProgram {
         let content = fs::read_to_string(file_path_ref)?;
         let bf_program = Self::new(file_path_ref.to_string_lossy().to_string(), content);
         Ok(bf_program)
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use crate::BrainFuckProgram;
+
+    #[test]
+    fn test_new_bf() {
+        let test_filename = "test_filename".to_string();
+        let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.clone(), test_content);
+        assert_eq!(bf_program.filename(), test_filename.clone(), "Filename has to be {}.", test_filename.clone());
+        assert_eq!(bf_program.instructions().len(), 9, "Number of parsed instructions have to be 9");
+        assert_eq!(bf_program.instructions().get(0).unwrap().line(), 2);  // the ugliest test that I've ever written
+        assert_eq!(bf_program.instructions().get(0).unwrap().position(), 1);
+        assert_eq!(bf_program.instructions().get(1).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(1).unwrap().position(), 2);
+        assert_eq!(bf_program.instructions().get(2).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(2).unwrap().position(), 3);
+        assert_eq!(bf_program.instructions().get(3).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(3).unwrap().position(), 4);
+        assert_eq!(bf_program.instructions().get(4).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(4).unwrap().position(), 5);
+        assert_eq!(bf_program.instructions().get(5).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(5).unwrap().position(), 6);
+        assert_eq!(bf_program.instructions().get(6).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(6).unwrap().position(), 7);
+        assert_eq!(bf_program.instructions().get(7).unwrap().line(), 2);
+        assert_eq!(bf_program.instructions().get(7).unwrap().position(), 8);
+        assert_eq!(bf_program.instructions().get(8).unwrap().line(), 3);
+        assert_eq!(bf_program.instructions().get(8).unwrap().position(), 9);
     }
 }

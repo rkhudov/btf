@@ -1,3 +1,4 @@
+//! Provide implementation of parsing BF program.
 use btf_interp::VirtualMachine;
 use btf_types::BrainFuckProgram;
 use std::env::args_os;

@@ -6,6 +6,8 @@ jobs:
       - image: cimg/rust:1.71.0
     steps:
       - checkout
+      - restore_cache:
+          key: project-cache
       - run:
           name: Check version
           command: cargo --version
@@ -15,3 +17,8 @@ jobs:
       - run:
           name: Run Tests
           command: cargo test --al
+      - save_cache:
+          key: project-cache
+          paths:
+            - "~/.cargo"
+            - "./target"

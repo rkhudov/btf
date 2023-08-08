@@ -162,7 +162,7 @@ impl BrainFuckProgram {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use crate::BrainFuckProgram;
 
     #[test]
@@ -170,9 +170,18 @@ mod tests{
         let test_filename = "test_filename".to_string();
         let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
         let bf_program = BrainFuckProgram::new(test_filename.clone(), test_content);
-        assert_eq!(bf_program.filename(), test_filename.clone(), "Filename has to be {}.", test_filename.clone());
-        assert_eq!(bf_program.instructions().len(), 9, "Number of parsed instructions have to be 9");
-        assert_eq!(bf_program.instructions().get(0).unwrap().line(), 2);  // the ugliest test that I've ever written
+        assert_eq!(
+            bf_program.filename(),
+            test_filename.clone(),
+            "Filename has to be {}.",
+            test_filename.clone(),
+        );
+        assert_eq!(
+            bf_program.instructions().len(),
+            9,
+            "Number of parsed instructions have to be 9",
+        );
+        assert_eq!(bf_program.instructions().get(0).unwrap().line(), 2); // the ugliest test that I've ever written
         assert_eq!(bf_program.instructions().get(0).unwrap().position(), 1);
         assert_eq!(bf_program.instructions().get(1).unwrap().line(), 2);
         assert_eq!(bf_program.instructions().get(1).unwrap().position(), 2);

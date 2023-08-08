@@ -6,7 +6,12 @@ jobs:
       - image: cimg/rust:1.71.0
     steps:
       - checkout
-      - run: cargo --version
+      - run:
+          name: Check version
+          command: cargo --version
+      - run:
+          name: Check formatting
+          command: cargo fmt --all -- --check
       - run:
           name: Run Tests
-          command: "cargo test"
+          command: cargo test --al

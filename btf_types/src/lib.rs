@@ -1,3 +1,4 @@
+//! Provide types implementation for BF interpreter.
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -43,6 +44,7 @@ impl TryFrom<char> for RawInstructions {
     }
 }
 
+/// Provide human-readable format of the instructions.
 impl fmt::Display for RawInstructions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -70,19 +72,23 @@ pub struct IntructionPosition {
 }
 
 impl IntructionPosition {
+    /// Get parsed instruction.
     pub fn instruction(&self) -> &RawInstructions {
         &self.instruction
     }
 
+    /// Get line of parsed instruction.
     pub fn line(&self) -> usize {
         self.line
     }
 
+    /// Get position at the line of parsed instruction.
     pub fn position(&self) -> usize {
         self.position
     }
 }
 
+/// Provide human-readable format of the instruction with position in parsed file.
 impl fmt::Display for IntructionPosition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

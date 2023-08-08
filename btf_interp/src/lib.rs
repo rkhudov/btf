@@ -1,3 +1,4 @@
+//! Provide interpreter implementation for BF program.
 use btf_types::BrainFuckProgram;
 
 /// Provide structure for Virtual Machine
@@ -56,6 +57,7 @@ impl<T> VirtualMachine<T> {
         Ok(())
     }
 
+    /// Interpreter BF program into human-readable format.
     pub fn interpreter(&self, bf_program: &BrainFuckProgram) {
         for instruction_position in bf_program.instructions() {
             println!("{}", instruction_position);

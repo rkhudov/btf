@@ -16,7 +16,7 @@ jobs:
           command: cargo fmt --all -- --check
       - run:
           name: Run Tests
-          command: cargo test --al
+          command: cargo test --all
       - save_cache:
           key: project-cache
           paths:

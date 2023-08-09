@@ -93,7 +93,7 @@ impl fmt::Display for IntructionPosition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "[inputfile:{}:{}] {}",
+            "{}:{}] {}",
             self.line, self.position, self.instruction,
         )
     }

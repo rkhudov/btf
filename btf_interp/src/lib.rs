@@ -60,7 +60,7 @@ impl<T> VirtualMachine<T> {
     /// Interpreter BF program into human-readable format.
     pub fn interpreter(&self, bf_program: &BrainFuckProgram) {
         for instruction_position in bf_program.instructions() {
-            println!("{}", instruction_position);
+            println!("[{}:{}", bf_program.filename(), instruction_position);
         }
     }
 }

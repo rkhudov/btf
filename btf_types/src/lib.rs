@@ -91,11 +91,7 @@ impl IntructionPosition {
 /// Provide human-readable format of the instruction with position in parsed file.
 impl fmt::Display for IntructionPosition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}:{}] {}",
-            self.line, self.position, self.instruction,
-        )
+        write!(f, "{}:{}] {}", self.line, self.position, self.instruction)
     }
 }
 

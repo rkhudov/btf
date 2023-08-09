@@ -112,9 +112,6 @@ impl BrainFuckProgram {
         let mut line: usize = 1;
         let mut position: usize = 1;
         for char in content.chars() {
-            println!("{}", char);
-            println!("{}", line);
-            println!("{}", position);
             if char == '\n' {
                 line += 1;
                 position = 0;

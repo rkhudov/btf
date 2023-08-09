@@ -14,3 +14,4 @@ members = [
 [dependencies]
 btf_types = { path = "btf_types" }
 btf_interp = { path = "btf_interp" }
+argh = "0.1"

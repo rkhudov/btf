@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Provide enum for all possible BF language instructions.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RawInstructions {
     /// Represent `>` symbol. Increment the data pointer by one (to point to the next cell to the right).
     IncrementDataPointer,
@@ -151,6 +151,26 @@ impl BrainFuckProgram {
         let content = fs::read_to_string(file_path_ref)?;
         let bf_program = Self::new(file_path_ref.to_path_buf(), content);
         Ok(bf_program)
+    }
+
+    /// Validate if brackets are balanced.
+    pub fn validate_brackets(&self) -> Result<(), String> {
+        let mut opened_brackets_count = 0;
+        let mut closed_brackets_count = 0;
+        for instruction_position in self.instructions() {
+            let instruction = instruction_position.instruction();
+
+            match instruction {
+                RawInstructions::ZeroJump => opened_brackets_count += 1,
+                RawInstructions::NonZeroJump => closed_brackets_count += 1,
+                _ => {}
+            }
+        }
+
+        if opened_brackets_count != closed_brackets_count {
+            return Err("Program is not valid. Brackets are not balanced.".to_string());
+        }
+        Ok(())
     }
 }
 

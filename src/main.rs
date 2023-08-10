@@ -12,6 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let vm: VirtualMachine<u8> = VirtualMachine::new(args.cells, args.extensible);
     match bf_program {
         Ok(bf_program) => {
+            bf_program.validate_brackets()?;
             vm.interpreter(&bf_program);
         }
         Err(e) => {

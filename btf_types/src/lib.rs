@@ -7,21 +7,21 @@ use std::path::Path;
 /// Provide enum for all possible BF language instructions.
 #[derive(Debug)]
 pub enum RawInstructions {
-    /// Reprsent `>` symbol. Increment the data pointer by one (to point to the next cell to the right).
+    /// Represent `>` symbol. Increment the data pointer by one (to point to the next cell to the right).
     IncrementDataPointer,
-    /// Reprsent `<` symbol. Decrement the data pointer by one (to point to the next cell to the left).
+    /// Represent `<` symbol. Decrement the data pointer by one (to point to the next cell to the left).
     DecrementDataPointer,
-    /// Reprsent `+` symbol. Increment the byte at the data pointer by one.
+    /// Represent `+` symbol. Increment the byte at the data pointer by one.
     IncrementByte,
-    // Reprsent `-` symbol. Decrement the byte at the data pointer by one.
+    // Represent `-` symbol. Decrement the byte at the data pointer by one.
     DecrementByte,
-    /// Reprsent `.` symbol. Output the byte at the data pointer.
+    /// Represent `.` symbol. Output the byte at the data pointer.
     OutputByte,
-    /// Reprsent `,` symbol. Accept one byte of input, storing its value in the byte at the data pointer.
+    /// Represent `,` symbol. Accept one byte of input, storing its value in the byte at the data pointer.
     AcceptByte,
-    /// Reprsent `[` symbol. If the byte at the data pointer is zero, then instead of moving the instruction pointer forward to the next command, jump it forward to the command after the matching ] command.
+    /// Represent `[` symbol. If the byte at the data pointer is zero, then instead of moving the instruction pointer forward to the next command, jump it forward to the command after the matching ] command.
     ZeroJump,
-    /// Reprsent `]` symbol. If the byte at the data pointer is nonzero, then instead of moving the instruction pointer forward to the next command, jump it back to the command after the matching [ command.
+    /// Represent `]` symbol. If the byte at the data pointer is nonzero, then instead of moving the instruction pointer forward to the next command, jump it back to the command after the matching [ command.
     NonZeroJump,
 }
 
@@ -60,7 +60,7 @@ impl fmt::Display for RawInstructions {
     }
 }
 
-/// Provide structure to reprsent location of BF instruction in file.
+/// Provide structure to represent location of BF instruction in file.
 #[derive(Debug)]
 pub struct IntructionPosition {
     /// BF instruction.
@@ -95,7 +95,7 @@ impl fmt::Display for IntructionPosition {
     }
 }
 
-/// Provide structure to reprsent BF program.
+/// Provide structure to represent BF program.
 #[derive(Debug)]
 pub struct BrainFuckProgram {
     /// Name of the file from where program is parsed.

@@ -1,13 +1,6 @@
-use structopt::StructOpt;
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
-
-fn validate_cells(s: &str) -> Result<usize, String> {
-    let value = s.parse::<usize>().map_err(|e| e.to_string())?;
-    if value == 0 {
-        return Err(String::from("The value must be non-zero."));
-    }
-    Ok(value)
-}
+use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "bft")]
@@ -20,13 +13,8 @@ pub struct Args {
     )]
     pub program: PathBuf,
 
-    #[structopt(
-        short,
-        long,
-        help = "The size of VM's tape.",
-        parse(try_from_str = validate_cells)
-    )]
-    pub cells: Option<usize>,
+    #[structopt(short, long, help = "The size of VM's tape.")]
+    pub cells: Option<NonZeroUsize>,
 
     #[structopt(
         short,

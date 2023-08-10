@@ -2,8 +2,8 @@
 mod cli;
 use btf_interp::VirtualMachine;
 use btf_types::BrainFuckProgram;
-use structopt::StructOpt;
 use std::error::Error;
+use structopt::StructOpt;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = cli::Args::from_args();

@@ -2,7 +2,7 @@
 use std::error::Error;
 use std::fmt;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Provide enum for all possible BF language instructions.
 #[derive(Debug)]
@@ -99,14 +99,14 @@ impl fmt::Display for IntructionPosition {
 #[derive(Debug)]
 pub struct BrainFuckProgram {
     /// Name of the file from where program is parsed.
-    filename: String,
+    filename: PathBuf,
     /// List of instructions with location parsed from file.
     instructions: Vec<IntructionPosition>,
 }
 
 impl BrainFuckProgram {
     /// Create BF program based on the name of the file and it's content.
-    fn new(filename: String, content: String) -> Self {
+    fn new(filename: PathBuf, content: String) -> Self {
         let mut instructions: Vec<IntructionPosition> = Vec::new();
 
         let mut line: usize = 1;
@@ -136,8 +136,8 @@ impl BrainFuckProgram {
     }
 
     /// Get name of the file from where BF program is parsed.
-    pub fn filename(&self) -> String {
-        self.filename.clone()
+    pub fn filename(&self) -> &Path {
+        self.filename.as_path()
     }
 
     /// Get list of instructions for BF program.
@@ -149,48 +149,44 @@ impl BrainFuckProgram {
     pub fn from_file<T: AsRef<Path>>(file_path: T) -> Result<BrainFuckProgram, Box<dyn Error>> {
         let file_path_ref = file_path.as_ref();
         let content = fs::read_to_string(file_path_ref)?;
-        let bf_program = Self::new(file_path_ref.to_string_lossy().to_string(), content);
+        let bf_program = Self::new(file_path_ref.to_path_buf(), content);
         Ok(bf_program)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::BrainFuckProgram;
 
     #[test]
     fn test_new_bf() {
-        let test_filename = "test_filename".to_string();
+        let test_filename = PathBuf::from("testfilename");
         let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
         let bf_program = BrainFuckProgram::new(test_filename.clone(), test_content);
         assert_eq!(
             bf_program.filename(),
-            test_filename.clone(),
+            test_filename,
             "Filename has to be {}.",
-            test_filename.clone(),
+            test_filename.display(),
         );
         assert_eq!(
             bf_program.instructions().len(),
             9,
             "Number of parsed instructions have to be 9",
         );
-        assert_eq!(bf_program.instructions().get(0).unwrap().line(), 2); // the ugliest test that I've ever written
-        assert_eq!(bf_program.instructions().get(0).unwrap().position(), 1);
-        assert_eq!(bf_program.instructions().get(1).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(1).unwrap().position(), 2);
-        assert_eq!(bf_program.instructions().get(2).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(2).unwrap().position(), 3);
-        assert_eq!(bf_program.instructions().get(3).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(3).unwrap().position(), 4);
-        assert_eq!(bf_program.instructions().get(4).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(4).unwrap().position(), 5);
-        assert_eq!(bf_program.instructions().get(5).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(5).unwrap().position(), 6);
-        assert_eq!(bf_program.instructions().get(6).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(6).unwrap().position(), 7);
-        assert_eq!(bf_program.instructions().get(7).unwrap().line(), 2);
-        assert_eq!(bf_program.instructions().get(7).unwrap().position(), 8);
-        assert_eq!(bf_program.instructions().get(8).unwrap().line(), 3);
-        assert_eq!(bf_program.instructions().get(8).unwrap().position(), 9);
+
+        let expected_lines: Vec<usize> = vec![2, 2, 2, 2, 2, 2, 2, 2, 3];
+        let expected_positions: Vec<usize> = (1..10).collect();
+        let mut actual_lines: Vec<usize> = Vec::new();
+        let mut actual_positions: Vec<usize> = Vec::new();
+        for instruction in bf_program.instructions() {
+            actual_lines.push(instruction.line());
+            actual_positions.push(instruction.position());
+        }
+
+        assert_eq!(expected_lines, actual_lines);
+        assert_eq!(expected_positions, actual_positions);
     }
 }

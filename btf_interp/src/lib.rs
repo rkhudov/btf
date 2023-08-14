@@ -8,7 +8,7 @@ pub struct VirtualMachine<T> {
     /// The collection to store elements of the tape.
     tape: Vec<T>,
     /// The size of the tape.
-    tape_size: NonZeroUsize,
+    tape_size: usize,
     /// Whether to allow adjust size of the tape of not.
     adjust_tape: bool,
     /// The pointer to the current element of tape.
@@ -20,7 +20,7 @@ impl<T> VirtualMachine<T> {
     pub fn new(size: Option<NonZeroUsize>, adjust_tape: Option<bool>) -> Self {
         VirtualMachine {
             tape: Vec::new(),
-            tape_size: size.unwrap_or(NonZeroUsize::new(3000).unwrap()),
+            tape_size: size.map(NonZeroUsize::get).unwrap_or(3000),
             adjust_tape: adjust_tape.unwrap_or(false),
             pointer: 0,
         }
@@ -33,7 +33,7 @@ impl<T> VirtualMachine<T> {
 
     /// Get the size of the tape.
     fn tape_size(&self) -> usize {
-        self.tape_size.get()
+        self.tape_size
     }
 
     /// Get the indicator whether it is possible to adjust tape or not.
@@ -52,7 +52,7 @@ impl<T> VirtualMachine<T> {
             if !self.adjust_tape {
                 return Err(format!("Max tape size of {} reached.", self.tape_size));
             }
-            self.tape_size.checked_add(1);
+            self.tape_size += 1;
         }
         self.tape.push(item);
         Ok(())

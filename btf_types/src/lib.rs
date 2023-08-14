@@ -164,7 +164,7 @@ mod tests {
     fn test_new_bf() {
         let test_filename = PathBuf::from("testfilename");
         let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
-        let bf_program = BrainFuckProgram::new(test_filename.clone(), test_content);
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
         assert_eq!(
             bf_program.filename(),
             test_filename,

@@ -106,7 +106,7 @@ pub struct BrainFuckProgram {
 
 impl BrainFuckProgram {
     /// Create BF program based on the name of the file and it's content.
-    fn new(filename: &Path, content: String) -> Self {
+    fn new(filename: impl AsRef<Path>, content: String) -> Self {
         let mut instructions: Vec<IntructionPosition> = Vec::new();
 
         let mut line: usize = 1;
@@ -130,7 +130,7 @@ impl BrainFuckProgram {
             position += 1;
         }
         BrainFuckProgram {
-            filename: filename.to_path_buf(),
+            filename: filename.as_ref().to_path_buf(),
             instructions,
         }
     }

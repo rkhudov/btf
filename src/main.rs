@@ -16,7 +16,7 @@ fn run_bft(args: Args) -> Result<(), Box<dyn Error>> {
             vm.interpreter(&bf_program);
         }
         Err(e) => {
-            eprintln!("bft: {}", e);
+            eprintln!("{}", e);
         }
     }
     Ok(())
@@ -26,6 +26,9 @@ fn main() -> ExitCode {
     let args = cli::Args::from_args();
     match run_bft(args) {
         Ok(_smth) => exit(0),
-        Err(_e) => exit(1),
+        Err(e) => {
+            eprintln!("btf: {}", e);
+            exit(1);
+        }
     }
 }

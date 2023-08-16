@@ -1,4 +1,5 @@
 //! Provide types implementation for BF interpreter.
+use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -155,19 +156,38 @@ impl BrainFuckProgram {
 
     /// Validate if brackets are balanced.
     pub fn validate_brackets(&self) -> Result<(), String> {
-        let mut opened_brackets_count = 0;
-        let mut closed_brackets_count = 0;
+        let mut opened_brackets = Vec::new();
+        let mut closed_brackets = Vec::new();
         for instruction_position in self.instructions() {
             match instruction_position.instruction() {
-                RawInstructions::ZeroJump => opened_brackets_count += 1,
-                RawInstructions::NonZeroJump => closed_brackets_count += 1,
+                RawInstructions::ZeroJump => opened_brackets.push(instruction_position),
+                RawInstructions::NonZeroJump => closed_brackets.push(instruction_position),
                 _ => {}
             }
         }
 
-        if opened_brackets_count != closed_brackets_count {
+        /* if opened_brackets.len() != closed_brackets.len() {
             return Err(format!("Error in input file {}, no close bracket found matching bracket at line 4 column 8.", self.filename.display()));
+        } */
+
+        match opened_brackets.len().cmp(&closed_brackets.len()) {
+            Ordering::Greater => {
+                let first_bracket = opened_brackets.first();
+                match first_bracket {
+                    None => return Err(format!("Error in input file {}, no open brackets found.", self.filename.display())),
+                    Some(bracket) => return Err(format!("Error in input file {}, no close bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
+                }
+            }
+            Ordering::Less => {
+                let last_bracket = closed_brackets.last();
+                match last_bracket {
+                    None => return Err(format!("Error in input file {}, no closed brackets found.", self.filename.display())),
+                    Some(bracket) => return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
+                }
+            }
+            Ordering::Equal => {}
         }
+
         Ok(())
     }
 }
@@ -227,7 +247,7 @@ mod tests {
         let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
         assert_eq!(
             bf_program.validate_brackets(),
-            Err("Error in input file testfilename, no close bracket found matching bracket at line 4 column 8.".to_string()),
+            Err("Error in input file testfilename, no close bracket found matching bracket at line 2 column 7.".to_string()),
             "Error during program parsing."
         )
     }

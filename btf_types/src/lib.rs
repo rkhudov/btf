@@ -166,10 +166,6 @@ impl BrainFuckProgram {
             }
         }
 
-        /* if opened_brackets.len() != closed_brackets.len() {
-            return Err(format!("Error in input file {}, no close bracket found matching bracket at line 4 column 8.", self.filename.display()));
-        } */
-
         match opened_brackets.len().cmp(&closed_brackets.len()) {
             Ordering::Greater => {
                 let first_bracket = opened_brackets.first();

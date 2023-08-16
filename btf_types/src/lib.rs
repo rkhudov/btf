@@ -106,7 +106,7 @@ pub struct BrainFuckProgram {
 
 impl BrainFuckProgram {
     /// Create BF program based on the name of the file and it's content.
-    fn new(filename: PathBuf, content: String) -> Self {
+    fn new(filename: impl AsRef<Path>, content: String) -> Self {
         let mut instructions: Vec<IntructionPosition> = Vec::new();
 
         let mut line: usize = 1;
@@ -130,14 +130,14 @@ impl BrainFuckProgram {
             position += 1;
         }
         BrainFuckProgram {
-            filename,
+            filename: filename.as_ref().to_path_buf(),
             instructions,
         }
     }
 
     /// Get name of the file from where BF program is parsed.
     pub fn filename(&self) -> &Path {
-        self.filename.as_path()
+        &self.filename
     }
 
     /// Get list of instructions for BF program.
@@ -149,7 +149,7 @@ impl BrainFuckProgram {
     pub fn from_file<T: AsRef<Path>>(file_path: T) -> Result<BrainFuckProgram, Box<dyn Error>> {
         let file_path_ref = file_path.as_ref();
         let content = fs::read_to_string(file_path_ref)?;
-        let bf_program = Self::new(file_path_ref.to_path_buf(), content);
+        let bf_program = Self::new(file_path_ref, content);
         Ok(bf_program)
     }
 
@@ -158,9 +158,7 @@ impl BrainFuckProgram {
         let mut opened_brackets_count = 0;
         let mut closed_brackets_count = 0;
         for instruction_position in self.instructions() {
-            let instruction = instruction_position.instruction();
-
-            match instruction {
+            match instruction_position.instruction() {
                 RawInstructions::ZeroJump => opened_brackets_count += 1,
                 RawInstructions::NonZeroJump => closed_brackets_count += 1,
                 _ => {}
@@ -168,7 +166,7 @@ impl BrainFuckProgram {
         }
 
         if opened_brackets_count != closed_brackets_count {
-            return Err("Program is not valid. Brackets are not balanced.".to_string());
+            return Err(format!("Error in input file {}, no close bracket found matching bracket at line 4 column 8.", self.filename.display()));
         }
         Ok(())
     }
@@ -184,7 +182,7 @@ mod tests {
     fn test_new_bf() {
         let test_filename = PathBuf::from("testfilename");
         let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
-        let bf_program = BrainFuckProgram::new(test_filename.clone(), test_content);
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
         assert_eq!(
             bf_program.filename(),
             test_filename,
@@ -208,5 +206,29 @@ mod tests {
 
         assert_eq!(expected_lines, actual_lines);
         assert_eq!(expected_positions, actual_positions);
+    }
+
+    #[test]
+    fn test_success_validate_brackets() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Ok(()),
+            "No errors during program parsing."
+        )
+    }
+
+    #[test]
+    fn test_error_validate_brackets() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,[[]\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Err("Error in input file testfilename, no close bracket found matching bracket at line 4 column 8.".to_string()),
+            "Error during program parsing."
+        )
     }
 }

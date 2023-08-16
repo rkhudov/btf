@@ -18,10 +18,9 @@ pub struct VirtualMachine<T> {
 impl<T> VirtualMachine<T> {
     /// Create VM based on the size, by default is 30 000. Also, it can be adjusted, by default it doesn't.
     pub fn new(size: Option<NonZeroUsize>, adjust_tape: Option<bool>) -> Self {
-        let default_tape_size = NonZeroUsize::new(3000).unwrap();
         VirtualMachine {
             tape: Vec::new(),
-            tape_size: size.unwrap_or(default_tape_size).get(),
+            tape_size: size.map(NonZeroUsize::get).unwrap_or(3000),
             adjust_tape: adjust_tape.unwrap_or(false),
             pointer: 0,
         }

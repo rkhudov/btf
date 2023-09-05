@@ -161,7 +161,12 @@ impl BrainFuckProgram {
         for instruction_position in self.instructions() {
             match instruction_position.instruction() {
                 RawInstructions::ZeroJump => opened_brackets.push(instruction_position),
-                RawInstructions::NonZeroJump => closed_brackets.push(instruction_position),
+                RawInstructions::NonZeroJump => {
+                    closed_brackets.push(instruction_position);
+                    if opened_brackets.len() < closed_brackets.len() {
+                        return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), instruction_position.line(), instruction_position.position()));
+                    }
+                }
                 _ => {}
             }
         }
@@ -244,6 +249,18 @@ mod tests {
         assert_eq!(
             bf_program.validate_brackets(),
             Err("Error in input file testfilename, no close bracket found matching bracket at line 2 column 7.".to_string()),
+            "Error during program parsing."
+        )
+    }
+
+    #[test]
+    fn test_error_validate_brackets_open_bracket_first() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,][\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Err("Error in input file testfilename, no open bracket found matching bracket at line 2 column 7.".to_string()),
             "Error during program parsing."
         )
     }

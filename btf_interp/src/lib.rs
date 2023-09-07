@@ -2,6 +2,15 @@
 use btf_types::BrainFuckProgram;
 use std::num::NonZeroUsize;
 
+/// Provide enum of errors for Virtual Machine.
+#[derive(Debug, PartialEq)]
+pub enum VMError {
+    /// Represent the case when the lenght of the tape is exceeded.
+    NextElementNotReachable,
+    /// Represent the case when element before the first one is trying to be reached.
+    PreviousElementNotReachanble,
+}
+
 /// Provide structure for Virtual Machine
 #[derive(Debug)]
 pub struct VirtualMachine<T> {
@@ -12,7 +21,7 @@ pub struct VirtualMachine<T> {
     /// Whether to allow adjust size of the tape of not.
     adjust_tape: bool,
     /// The pointer to the current element of tape.
-    pointer: usize,
+    head: usize,
 }
 
 impl<T> VirtualMachine<T> {
@@ -22,20 +31,8 @@ impl<T> VirtualMachine<T> {
             tape: Vec::new(),
             tape_size: size.map(NonZeroUsize::get).unwrap_or(3000),
             adjust_tape: adjust_tape.unwrap_or(false),
-            pointer: 0,
+            head: 0,
         }
-    }
-
-    /// Add element into tape. If tape size exceeded, element is not going to be added, error message is shown.
-    pub fn push(&mut self, item: T) -> Result<(), String> {
-        if self.tape.len() >= self.tape_size {
-            if !self.adjust_tape {
-                return Err(format!("Max tape size of {} reached.", self.tape_size));
-            }
-            self.tape_size += 1;
-        }
-        self.tape.push(item);
-        Ok(())
     }
 
     /// Interpreter BF program into human-readable format.
@@ -47,5 +44,78 @@ impl<T> VirtualMachine<T> {
                 instruction_position
             );
         }
+    }
+
+    /// Go to the next element in tape. If tape size exceeded, error message is shown.
+    pub fn next_element(&mut self) -> Result<(), VMError> {
+        if self.head == self.tape_size - 1 {
+            return Err(VMError::NextElementNotReachable);
+        }
+        self.head += 1;
+        Ok(())
+    }
+
+    /// Go to the previous element in tape. If it is the first element, error message is shown.
+    pub fn previous_element(&mut self) -> Result<(), VMError> {
+        if self.head == 0 {
+            return Err(VMError::PreviousElementNotReachanble);
+        }
+        self.head -= 1;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // use std::path::PathBuf;
+
+    use crate::NonZeroUsize;
+    use crate::VMError;
+    use crate::VirtualMachine;
+
+    #[test]
+    fn test_default_new_vm() {
+        let default_vm: VirtualMachine<u8> = VirtualMachine::new(None, None);
+        assert_eq!(default_vm.tape_size, 3000);
+        assert_eq!(default_vm.tape.len(), 0);
+        assert_eq!(default_vm.head, 0);
+        assert!(!default_vm.adjust_tape);
+    }
+
+    #[test]
+    fn test_new_vm() {
+        let vm: VirtualMachine<u8> = VirtualMachine::new(NonZeroUsize::new(100), Some(true));
+        assert_eq!(vm.tape_size, 100);
+        assert_eq!(vm.tape.len(), 0);
+        assert_eq!(vm.head, 0);
+        assert!(vm.adjust_tape);
+    }
+
+    #[test]
+    fn test_failed_to_get_previous_element_vm() {
+        let mut vm: VirtualMachine<u8> = VirtualMachine::new(NonZeroUsize::new(1), None);
+        assert_eq!(
+            vm.previous_element(),
+            Err(VMError::PreviousElementNotReachanble)
+        );
+    }
+
+    #[test]
+    fn test_get_previous_element_vm() {
+        let mut vm: VirtualMachine<u8> = VirtualMachine::new(None, None);
+        assert_eq!(vm.next_element(), Ok(()));
+        assert_eq!(vm.previous_element(), Ok(()));
+    }
+
+    #[test]
+    fn test_failed_to_get_next_element_vm() {
+        let mut vm: VirtualMachine<u8> = VirtualMachine::new(NonZeroUsize::new(1), None);
+        assert_eq!(vm.next_element(), Err(VMError::NextElementNotReachable));
+    }
+
+    #[test]
+    fn test_next_element_vm() {
+        let mut vm: VirtualMachine<u8> = VirtualMachine::new(None, None);
+        assert_eq!(vm.next_element(), Ok(()));
     }
 }

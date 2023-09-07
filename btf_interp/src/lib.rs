@@ -67,8 +67,6 @@ impl<T> VirtualMachine<T> {
 
 #[cfg(test)]
 mod tests {
-    // use std::path::PathBuf;
-
     use crate::NonZeroUsize;
     use crate::VMError;
     use crate::VirtualMachine;

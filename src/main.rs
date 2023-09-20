@@ -12,8 +12,9 @@ fn run_bft(args: Args) -> Result<(), Box<dyn Error>> {
     match bf_program {
         Ok(bf_program) => {
             bf_program.validate_brackets()?;
-            let vm: VirtualMachine<u8> = VirtualMachine::new(args.cells, args.extensible);
-            vm.interpreter(&bf_program);
+            let vm: VirtualMachine<u8> =
+                VirtualMachine::new(&bf_program, args.cells, args.extensible);
+            vm.interpreter();
         }
         Err(e) => {
             eprintln!("{}", e);

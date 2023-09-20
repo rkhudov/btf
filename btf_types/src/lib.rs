@@ -1,11 +1,12 @@
 //! Provide types implementation for BF interpreter.
+use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Provide enum for all possible BF language instructions.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RawInstructions {
     /// Represent `>` symbol. Increment the data pointer by one (to point to the next cell to the right).
     IncrementDataPointer,
@@ -152,6 +153,44 @@ impl BrainFuckProgram {
         let bf_program = Self::new(file_path_ref, content);
         Ok(bf_program)
     }
+
+    /// Validate if brackets are balanced.
+    pub fn validate_brackets(&self) -> Result<(), String> {
+        let mut opened_brackets = Vec::new();
+        let mut closed_brackets = Vec::new();
+        for instruction_position in self.instructions() {
+            match instruction_position.instruction() {
+                RawInstructions::ZeroJump => opened_brackets.push(instruction_position),
+                RawInstructions::NonZeroJump => {
+                    closed_brackets.push(instruction_position);
+                    if opened_brackets.len() < closed_brackets.len() {
+                        return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), instruction_position.line(), instruction_position.position()));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        match opened_brackets.len().cmp(&closed_brackets.len()) {
+            Ordering::Greater => {
+                let first_bracket = opened_brackets.first();
+                match first_bracket {
+                    None => return Err(format!("Error in input file {}, no open brackets found.", self.filename.display())),
+                    Some(bracket) => return Err(format!("Error in input file {}, no close bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
+                }
+            }
+            Ordering::Less => {
+                let last_bracket = closed_brackets.last();
+                match last_bracket {
+                    None => return Err(format!("Error in input file {}, no closed brackets found.", self.filename.display())),
+                    Some(bracket) => return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
+                }
+            }
+            Ordering::Equal => {}
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -188,5 +227,41 @@ mod tests {
 
         assert_eq!(expected_lines, actual_lines);
         assert_eq!(expected_positions, actual_positions);
+    }
+
+    #[test]
+    fn test_success_validate_brackets() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Ok(()),
+            "No errors during program parsing."
+        )
+    }
+
+    #[test]
+    fn test_error_validate_brackets() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,[[]\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Err("Error in input file testfilename, no close bracket found matching bracket at line 2 column 7.".to_string()),
+            "Error during program parsing."
+        )
+    }
+
+    #[test]
+    fn test_error_validate_brackets_open_bracket_first() {
+        let test_filename = PathBuf::from("testfilename");
+        let test_content = "sometext\n><+-.,][\ncomment <".to_string();
+        let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        assert_eq!(
+            bf_program.validate_brackets(),
+            Err("Error in input file testfilename, no open bracket found matching bracket at line 2 column 7.".to_string()),
+            "Error during program parsing."
+        )
     }
 }

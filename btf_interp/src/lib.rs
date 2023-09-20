@@ -26,29 +26,9 @@ impl<T> VirtualMachine<T> {
         }
     }
 
-    /// Get the tape.
-    fn tape(&self) -> &[T] {
-        &self.tape[..]
-    }
-
-    /// Get the size of the tape.
-    fn tape_size(&self) -> usize {
-        self.tape_size
-    }
-
-    /// Get the indicator whether it is possible to adjust tape or not.
-    fn adjust_tape(&self) -> bool {
-        self.adjust_tape
-    }
-
-    /// Get pointer of the tape.
-    fn pointer(&self) -> usize {
-        self.pointer
-    }
-
     /// Add element into tape. If tape size exceeded, element is not going to be added, error message is shown.
     pub fn push(&mut self, item: T) -> Result<(), String> {
-        if self.tape.len() >= self.tape_size() {
+        if self.tape.len() >= self.tape_size {
             if !self.adjust_tape {
                 return Err(format!("Max tape size of {} reached.", self.tape_size));
             }

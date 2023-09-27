@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 btf_types = { path = "../btf_types" }
+
+[dev-dependencies]
 tempdir = "0.3.7"

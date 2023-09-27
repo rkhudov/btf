@@ -1,18 +1,24 @@
 //! Provide interpreter implementation for BF program.
 use btf_types::BrainFuckProgram;
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, cell::Cell};
 
+/// Provide trait for cell in Virtual Machine.
 pub trait CellKind {
-    fn wrapped_add(&mut self, v: &Self) -> Self;
-    fn wrapped_sub(&mut self, v: &Self) -> Self;
+    /// Wrapper to increase value in the cell.
+    fn wrapping_increment(&mut self, v: &Self) -> Self;
+    /// Wrapper to decrease value in the cell.
+    fn wrapping_decrement(&mut self, v: &Self) -> Self;
 }
 
+/// Provide implementation for u8 type cell in Virtual Machine.
 impl CellKind for u8 {
-    fn wrapped_add(&mut self, v: &Self) -> Self {
+    /// Implementation for u8 cell type of wrapper to increase value in it.
+    fn wrapping_increment(&mut self, v: &Self) -> Self {
         *self += v;
         *self
     }
-    fn wrapped_sub(&mut self, v: &Self) -> Self {
+    /// Implementation for u8 cell type of wrapper to decrease value in it.
+    fn wrapping_decrement(&mut self, v: &Self) -> Self {
         *self -= v;
         *self
     }

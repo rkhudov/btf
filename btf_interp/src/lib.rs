@@ -1,6 +1,6 @@
 //! Provide interpreter implementation for BF program.
 use btf_types::BrainFuckProgram;
-use std::{num::NonZeroUsize, cell::Cell};
+use std::num::NonZeroUsize;
 
 /// Provide trait for cell in Virtual Machine.
 pub trait CellKind {
@@ -47,7 +47,7 @@ pub struct VirtualMachine<'a, CellKind> {
     program: &'a BrainFuckProgram,
 }
 
-impl<'a, T> VirtualMachine<'a, T> {
+impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     /// Create VM based on the size, by default is 30 000. Also, it can be adjusted, by default it doesn't.
     pub fn new(
         program: &'a BrainFuckProgram,
@@ -89,6 +89,18 @@ impl<'a, T> VirtualMachine<'a, T> {
             return Err(VMError::PreviousElementNotReachanble);
         }
         self.head -= 1;
+        Ok(())
+    }
+
+    /// Add value to the element where head is pointing to.
+    pub fn wrapped_add(&mut self, value: u8) -> Result<(), u8> {
+        self.tape[self.head].wrapping_increment(&value);
+        Ok(())
+    }
+
+    /// Substract value to the element where head is pointing to.
+    pub fn wrapped_sub(&mut self, value: u8) -> Result<(), u8> {
+        self.tape[self.head].wrapping_decrement(&value);
         Ok(())
     }
 }

@@ -44,6 +44,7 @@ pub struct VirtualMachine<'a, CellKind> {
     adjust_tape: bool,
     /// The pointer to the current element of tape.
     head: usize,
+    /// BrainFuck Program.
     program: &'a BrainFuckProgram,
 }
 

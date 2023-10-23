@@ -1,6 +1,6 @@
 //! Provide interpreter implementation for BF program.
 use btf_types::BrainFuckProgram;
-use std::io::{Error, Read, Write};
+use std::io::{Read, Write};
 use std::num::NonZeroUsize;
 
 /// Provide trait for cell in Virtual Machine.
@@ -48,9 +48,9 @@ pub enum VMError {
 
 /// Provide structure for Virtual Machine
 #[derive(Debug)]
-pub struct VirtualMachine<'a, CellKind> {
+pub struct VirtualMachine<'a, T> {
     /// The collection to store elements of the tape.
-    tape: Vec<CellKind>,
+    tape: Vec<T>,
     /// The size of the tape.
     tape_size: usize,
     /// Whether to allow adjust size of the tape of not.
@@ -61,7 +61,10 @@ pub struct VirtualMachine<'a, CellKind> {
     program: &'a BrainFuckProgram,
 }
 
-impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
+impl<'a, T: CellKind> VirtualMachine<'a, T>
+where
+    T: CellKind,
+{
     /// Create VM based on the size, by default is 30 000. Also, it can be adjusted, by default it doesn't.
     pub fn new(
         program: &'a BrainFuckProgram,
@@ -89,7 +92,7 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     }
 
     /// Go to the next element in tape. If tape size exceeded, error message is shown.
-    pub fn next_element(&mut self) -> Result<(), VMError> {
+    fn next_element(&mut self) -> Result<(), VMError> {
         if self.head + 1 == self.tape_size {
             let instruction = &self.program.instructions()[self.head];
             return Err(VMError::NextElementNotReachable {
@@ -102,7 +105,7 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     }
 
     /// Go to the previous element in tape. If it is the first element, error message is shown.
-    pub fn previous_element(&mut self) -> Result<(), VMError> {
+    fn previous_element(&mut self) -> Result<(), VMError> {
         if self.head == 0 {
             let instruction = &self.program.instructions()[self.head];
             return Err(VMError::PreviousElementNotReachanble {
@@ -115,19 +118,19 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     }
 
     /// Add 1 to the element where head is pointing to.
-    pub fn wrapped_add(&mut self) -> Result<(), u8> {
+    fn wrapped_add(&mut self) -> Result<(), u8> {
         self.tape[self.head].wrapping_increment();
         Ok(())
     }
 
     /// Substract 1 to the element where head is pointing to.
-    pub fn wrapped_sub(&mut self) -> Result<(), u8> {
+    fn wrapped_sub(&mut self) -> Result<(), u8> {
         self.tape[self.head].wrapping_decrement();
         Ok(())
     }
 
     /// Basic IO read.
-    pub fn read(&mut self, reader: &mut impl Read) -> Result<(), VMError> {
+    fn read(&mut self, reader: &mut impl Read) -> Result<(), VMError> {
         let mut buffer = [0; 1];
         match reader.read_exact(&mut buffer) {
             Ok(()) => self.tape[self.head].wrapping_set_value(buffer[0]),
@@ -143,7 +146,7 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     }
 
     /// Basic IO write.
-    pub fn output(&self, writer: &mut impl Write) -> Result<(), VMError> {
+    fn output(&self, writer: &mut impl Write) -> Result<(), VMError> {
         match writer.write_all(&[self.tape[self.head].wrapping_get_value()]) {
             Ok(()) => match writer.flush() {
                 Ok(()) => Ok(()),
@@ -219,7 +222,7 @@ mod tests {
         let tmp_dir = TempDir::new("example").unwrap();
         let file_path = tmp_dir.path().join("my-temporary-note.txt");
         let mut tmp_file = File::create(&file_path).unwrap();
-        writeln!(tmp_file, "+[-");
+        let _ = writeln!(tmp_file, "+[-");
 
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
@@ -257,13 +260,13 @@ mod tests {
         let tmp_dir = TempDir::new("example").unwrap();
         let file_path = tmp_dir.path().join("my-temporary-note.txt");
         let mut tmp_file = File::create(&file_path).unwrap();
-        writeln!(tmp_file, "+[-");
+        let _ = writeln!(tmp_file, "+[-");
 
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
         let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, NonZeroUsize::new(3), None);
-        vm.next_element();
-        vm.next_element();
+        let _ = vm.next_element();
+        let _ = vm.next_element();
         assert_eq!(
             vm.next_element(),
             Err(VMError::NextElementNotReachable {

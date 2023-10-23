@@ -4,22 +4,22 @@ use std::num::NonZeroUsize;
 
 /// Provide trait for cell in Virtual Machine.
 pub trait CellKind {
-    /// Wrapper to increase value in the cell.
-    fn wrapping_increment(&mut self, v: &Self) -> Self;
-    /// Wrapper to decrease value in the cell.
-    fn wrapping_decrement(&mut self, v: &Self) -> Self;
+    /// Wrapper to increase value by 1 in the cell.
+    fn wrapping_increment(&mut self) -> Self;
+    /// Wrapper to decrease value by 1 in the cell.
+    fn wrapping_decrement(&mut self) -> Self;
 }
 
 /// Provide implementation for u8 type cell in Virtual Machine.
 impl CellKind for u8 {
-    /// Implementation for u8 cell type of wrapper to increase value in it.
-    fn wrapping_increment(&mut self, v: &Self) -> Self {
-        *self += v;
+    /// Implementation for u8 cell type of wrapper to increase value by 1 in it.
+    fn wrapping_increment(&mut self) -> Self {
+        *self += 1;
         *self
     }
-    /// Implementation for u8 cell type of wrapper to decrease value in it.
-    fn wrapping_decrement(&mut self, v: &Self) -> Self {
-        *self -= v;
+    /// Implementation for u8 cell type of wrapper to decrease value by 1 in it.
+    fn wrapping_decrement(&mut self) -> Self {
+        *self -= 1;
         *self
     }
 }
@@ -93,15 +93,15 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
         Ok(())
     }
 
-    /// Add value to the element where head is pointing to.
-    pub fn wrapped_add(&mut self, value: u8) -> Result<(), u8> {
-        self.tape[self.head].wrapping_increment(&value);
+    /// Add 1 to the element where head is pointing to.
+    pub fn wrapped_add(&mut self) -> Result<(), u8> {
+        self.tape[self.head].wrapping_increment();
         Ok(())
     }
 
-    /// Substract value to the element where head is pointing to.
-    pub fn wrapped_sub(&mut self, value: u8) -> Result<(), u8> {
-        self.tape[self.head].wrapping_decrement(&value);
+    /// Substract 1 to the element where head is pointing to.
+    pub fn wrapped_sub(&mut self) -> Result<(), u8> {
+        self.tape[self.head].wrapping_decrement();
         Ok(())
     }
 }

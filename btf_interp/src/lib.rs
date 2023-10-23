@@ -1,25 +1,36 @@
 //! Provide interpreter implementation for BF program.
 use btf_types::BrainFuckProgram;
+use std::io::{Error, Read, Write};
 use std::num::NonZeroUsize;
 
 /// Provide trait for cell in Virtual Machine.
 pub trait CellKind {
     /// Wrapper to increase value by 1 in the cell.
-    fn wrapping_increment(&mut self) -> Self;
+    fn wrapping_increment(&mut self);
     /// Wrapper to decrease value by 1 in the cell.
-    fn wrapping_decrement(&mut self) -> Self;
+    fn wrapping_decrement(&mut self);
+    /// Wrapper to set value in the cell.
+    fn wrapping_set_value(&mut self, value: u8);
+    /// Wrapper to get value from the cell.
+    fn wrapping_get_value(&self) -> u8;
 }
 
 /// Provide implementation for u8 type cell in Virtual Machine.
 impl CellKind for u8 {
     /// Implementation for u8 cell type of wrapper to increase value by 1 in it.
-    fn wrapping_increment(&mut self) -> Self {
+    fn wrapping_increment(&mut self) {
         *self += 1;
-        *self
     }
     /// Implementation for u8 cell type of wrapper to decrease value by 1 in it.
-    fn wrapping_decrement(&mut self) -> Self {
+    fn wrapping_decrement(&mut self) {
         *self -= 1;
+    }
+    /// Implementation for u8 cell type of wrapper to set value in it.
+    fn wrapping_set_value(&mut self, value: u8) {
+        *self = value;
+    }
+    /// Implementation for u8 cell type of wrapper to get value from it.
+    fn wrapping_get_value(&self) -> u8 {
         *self
     }
 }
@@ -28,9 +39,11 @@ impl CellKind for u8 {
 #[derive(Debug, PartialEq)]
 pub enum VMError {
     /// Represent the case when the lenght of the tape is exceeded.
-    NextElementNotReachable,
+    NextElementNotReachable { line: usize, position: usize },
     /// Represent the case when element before the first one is trying to be reached.
-    PreviousElementNotReachanble,
+    PreviousElementNotReachanble { line: usize, position: usize },
+    ///IO Error at current instruction
+    IOError { line: usize, position: usize },
 }
 
 /// Provide structure for Virtual Machine
@@ -77,8 +90,12 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
 
     /// Go to the next element in tape. If tape size exceeded, error message is shown.
     pub fn next_element(&mut self) -> Result<(), VMError> {
-        if self.head == self.tape_size - 1 {
-            return Err(VMError::NextElementNotReachable);
+        if self.head + 1 == self.tape_size {
+            let instruction = &self.program.instructions()[self.head];
+            return Err(VMError::NextElementNotReachable {
+                line: instruction.line(),
+                position: instruction.position(),
+            });
         }
         self.head += 1;
         Ok(())
@@ -87,7 +104,11 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
     /// Go to the previous element in tape. If it is the first element, error message is shown.
     pub fn previous_element(&mut self) -> Result<(), VMError> {
         if self.head == 0 {
-            return Err(VMError::PreviousElementNotReachanble);
+            let instruction = &self.program.instructions()[self.head];
+            return Err(VMError::PreviousElementNotReachanble {
+                line: instruction.line(),
+                position: instruction.position(),
+            });
         }
         self.head -= 1;
         Ok(())
@@ -104,6 +125,45 @@ impl<'a, u8: CellKind> VirtualMachine<'a, u8> {
         self.tape[self.head].wrapping_decrement();
         Ok(())
     }
+
+    /// Basic IO read.
+    pub fn read(&mut self, reader: &mut impl Read) -> Result<(), VMError> {
+        let mut buffer = [0; 1];
+        match reader.read_exact(&mut buffer) {
+            Ok(()) => self.tape[self.head].wrapping_set_value(buffer[0]),
+            Err(_err) => {
+                let instruction = &self.program.instructions()[self.head];
+                return Err(VMError::IOError {
+                    line: instruction.line(),
+                    position: instruction.position(),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// Basic IO write.
+    pub fn output(&self, writer: &mut impl Write) -> Result<(), VMError> {
+        match writer.write_all(&[self.tape[self.head].wrapping_get_value()]) {
+            Ok(()) => match writer.flush() {
+                Ok(()) => Ok(()),
+                Err(_err) => {
+                    let instruction = &self.program.instructions()[self.head];
+                    Err(VMError::IOError {
+                        line: instruction.line(),
+                        position: instruction.position(),
+                    })
+                }
+            },
+            Err(_err) => {
+                let instruction = &self.program.instructions()[self.head];
+                Err(VMError::IOError {
+                    line: instruction.line(),
+                    position: instruction.position(),
+                })
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -114,6 +174,7 @@ mod tests {
     use crate::VirtualMachine;
 
     use std::fs::File;
+    use std::io::Write;
     use tempdir::TempDir;
 
     #[test]
@@ -157,14 +218,18 @@ mod tests {
     fn test_failed_to_get_previous_element_vm() {
         let tmp_dir = TempDir::new("example").unwrap();
         let file_path = tmp_dir.path().join("my-temporary-note.txt");
-        let tmp_file = File::create(&file_path).unwrap();
+        let mut tmp_file = File::create(&file_path).unwrap();
+        writeln!(tmp_file, "+[-");
 
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
         let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, NonZeroUsize::new(1), None);
         assert_eq!(
             vm.previous_element(),
-            Err(VMError::PreviousElementNotReachanble)
+            Err(VMError::PreviousElementNotReachanble {
+                line: 1,
+                position: 1
+            })
         );
 
         drop(tmp_file);
@@ -191,12 +256,21 @@ mod tests {
     fn test_failed_to_get_next_element_vm() {
         let tmp_dir = TempDir::new("example").unwrap();
         let file_path = tmp_dir.path().join("my-temporary-note.txt");
-        let tmp_file = File::create(&file_path).unwrap();
+        let mut tmp_file = File::create(&file_path).unwrap();
+        writeln!(tmp_file, "+[-");
 
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
-        let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, NonZeroUsize::new(1), None);
-        assert_eq!(vm.next_element(), Err(VMError::NextElementNotReachable));
+        let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, NonZeroUsize::new(3), None);
+        vm.next_element();
+        vm.next_element();
+        assert_eq!(
+            vm.next_element(),
+            Err(VMError::NextElementNotReachable {
+                line: 1,
+                position: 3,
+            })
+        );
 
         drop(tmp_file);
         tmp_dir.close().unwrap();

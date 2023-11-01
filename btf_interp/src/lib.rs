@@ -1,5 +1,5 @@
 //! Provide interpreter implementation for BF program.
-use btf_types::BrainFuckProgram;
+use btf_types::{BrainFuckProgram, RawInstructions};
 use std::io::{Read, Write};
 use std::num::NonZeroUsize;
 
@@ -57,6 +57,8 @@ pub struct VirtualMachine<'a, T> {
     adjust_tape: bool,
     /// The pointer to the current element of tape.
     head: usize,
+    /// Current instruction pointer
+    instruction_pointer: usize,
     /// BrainFuck Program.
     program: &'a BrainFuckProgram,
 }
@@ -76,6 +78,7 @@ where
             tape_size: size.map(NonZeroUsize::get).unwrap_or(3000),
             adjust_tape: adjust_tape.unwrap_or(false),
             head: 0,
+            instruction_pointer: 0,
             program,
         }
     }
@@ -92,7 +95,8 @@ where
     }
 
     /// Go to the next element in tape. If tape size exceeded, error message is shown.
-    fn next_element(&mut self) -> Result<(), VMError> {
+    fn next_element(&mut self) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         if self.head + 1 == self.tape_size {
             let instruction = &self.program.instructions()[self.head];
             return Err(VMError::NextElementNotReachable {
@@ -101,11 +105,12 @@ where
             });
         }
         self.head += 1;
-        Ok(())
+        Ok(self.instruction_pointer)
     }
 
     /// Go to the previous element in tape. If it is the first element, error message is shown.
-    fn previous_element(&mut self) -> Result<(), VMError> {
+    fn previous_element(&mut self) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         if self.head == 0 {
             let instruction = &self.program.instructions()[self.head];
             return Err(VMError::PreviousElementNotReachanble {
@@ -114,26 +119,29 @@ where
             });
         }
         self.head -= 1;
-        Ok(())
+        Ok(self.instruction_pointer)
     }
 
     /// Add 1 to the element where head is pointing to.
-    fn wrapped_add(&mut self) -> Result<(), u8> {
+    fn wrapped_add(&mut self) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         self.tape[self.head].wrapping_increment();
-        Ok(())
+        Ok(self.instruction_pointer)
     }
 
     /// Substract 1 to the element where head is pointing to.
-    fn wrapped_sub(&mut self) -> Result<(), u8> {
+    fn wrapped_sub(&mut self) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         self.tape[self.head].wrapping_decrement();
-        Ok(())
+        Ok(self.instruction_pointer)
     }
 
     /// Basic IO read.
-    fn read(&mut self, reader: &mut impl Read) -> Result<(), VMError> {
+    fn read(&mut self, reader: &mut impl Read) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         let mut buffer = [0; 1];
         match reader.read_exact(&mut buffer) {
-            Ok(()) => self.tape[self.head].wrapping_set_value(buffer[0]),
+            Ok(_) => self.tape[self.head].wrapping_set_value(buffer[0]),
             Err(_err) => {
                 let instruction = &self.program.instructions()[self.head];
                 return Err(VMError::IOError {
@@ -142,14 +150,15 @@ where
                 });
             }
         }
-        Ok(())
+        Ok(self.instruction_pointer)
     }
 
     /// Basic IO write.
-    fn output(&self, writer: &mut impl Write) -> Result<(), VMError> {
+    fn output(&mut self, writer: &mut impl Write) -> Result<usize, VMError> {
+        self.instruction_pointer += 1;
         match writer.write_all(&[self.tape[self.head].wrapping_get_value()]) {
-            Ok(()) => match writer.flush() {
-                Ok(()) => Ok(()),
+            Ok(_) => match writer.flush() {
+                Ok(_) => Ok(self.instruction_pointer),
                 Err(_err) => {
                     let instruction = &self.program.instructions()[self.head];
                     Err(VMError::IOError {
@@ -164,6 +173,48 @@ where
                     line: instruction.line(),
                     position: instruction.position(),
                 })
+            }
+        }
+    }
+
+    /// Not make jump
+    fn non_zero_jump(&self, index: usize) -> Result<usize, VMError> {
+        Ok(index)
+    }
+
+    /// Make jump
+    fn zero_jump(&mut self, index: usize) -> Result<usize, VMError> {
+        let current_value = &self.tape[self.instruction_pointer];
+
+        if current_value.wrapping_get_value() == 0 {
+            Ok(self.instruction_pointer + 1)
+        } else {
+            Ok(index + 1)
+        }
+    }
+
+    /// Make interpretation of the BF program
+    pub fn interpret<R, W>(&mut self, input: &mut R, output: &mut W) -> Result<(), VMError>
+    where
+        R: Read,
+        W: Write,
+    {
+        loop {
+            let current_pointer = self.instruction_pointer;
+            let current_instruction = self.program.instructions()[current_pointer].instruction();
+            let next_pointer = match current_instruction {
+                RawInstructions::IncrementByte => self.wrapped_add(),
+                RawInstructions::DecrementByte => self.wrapped_sub(),
+                RawInstructions::IncrementDataPointer => self.next_element(),
+                RawInstructions::DecrementDataPointer => self.previous_element(),
+                RawInstructions::OutputByte => self.output(output),
+                RawInstructions::AcceptByte => self.read(input),
+                RawInstructions::NonZeroJump => self.non_zero_jump(current_pointer),
+                RawInstructions::ZeroJump => self.zero_jump(current_pointer),
+            }?;
+
+            if next_pointer == self.program.instructions().len() {
+                return Ok(());
             }
         }
     }
@@ -248,8 +299,8 @@ mod tests {
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
         let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, None, None);
-        assert_eq!(vm.next_element(), Ok(()));
-        assert_eq!(vm.previous_element(), Ok(()));
+        assert_eq!(vm.next_element(), Ok(1));
+        assert_eq!(vm.previous_element(), Ok(2));
 
         drop(tmp_file);
         tmp_dir.close().unwrap();
@@ -288,7 +339,7 @@ mod tests {
         let program = BrainFuckProgram::from_file(&file_path).unwrap();
 
         let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, None, None);
-        assert_eq!(vm.next_element(), Ok(()));
+        assert_eq!(vm.next_element(), Ok(1));
 
         drop(tmp_file);
         tmp_dir.close().unwrap();

@@ -4,6 +4,7 @@ use btf_interp::VirtualMachine;
 use btf_types::BrainFuckProgram;
 use cli::Args;
 use std::error::Error;
+use std::io::{stderr, stdin};
 use std::process::{exit, ExitCode};
 use structopt::StructOpt;
 
@@ -12,9 +13,9 @@ fn run_bft(args: Args) -> Result<(), Box<dyn Error>> {
     match bf_program {
         Ok(bf_program) => {
             bf_program.validate_brackets()?;
-            let vm: VirtualMachine<u8> =
+            let mut vm: VirtualMachine<u8> =
                 VirtualMachine::new(&bf_program, args.cells, args.extensible);
-            vm.interpreter();
+            let _ = vm.interpret(&mut stdin(), &mut stderr());
         }
         Err(e) => {
             eprintln!("{}", e);

@@ -7,9 +7,9 @@ use std::num::NonZeroUsize;
 /// Provide trait for cell in Virtual Machine.
 pub trait CellKind: Default + Clone + Debug {
     /// Wrapper to increase value by 1 in the cell.
-    fn wrapping_increment(&mut self) -> Self;
+    fn wrapping_increment(&mut self);
     /// Wrapper to decrease value by 1 in the cell.
-    fn wrapping_decrement(&mut self) -> Self;
+    fn wrapping_decrement(&mut self);
     /// Wrapper to set value in the cell.
     fn wrapping_set_value(&mut self, value: u8);
     /// Wrapper to get value from the cell.
@@ -19,12 +19,12 @@ pub trait CellKind: Default + Clone + Debug {
 /// Provide implementation for u8 type cell in Virtual Machine.
 impl CellKind for u8 {
     /// Implementation for u8 cell type of wrapper to increase value by 1 in it.
-    fn wrapping_increment(&mut self) -> Self {
-        self.wrapping_add(1)
+    fn wrapping_increment(&mut self) {
+        *self = self.wrapping_add(1);
     }
     /// Implementation for u8 cell type of wrapper to decrease value by 1 in it.
-    fn wrapping_decrement(&mut self) -> Self {
-        self.wrapping_sub(1)
+    fn wrapping_decrement(&mut self) {
+        *self = self.wrapping_sub(1);
     }
     /// Implementation for u8 cell type of wrapper to set value in it.
     fn wrapping_set_value(&mut self, value: u8) {
@@ -123,14 +123,14 @@ where
 
     /// Add 1 to the element where head is pointing to.
     fn wrapped_add(&mut self) -> Result<usize, VMError> {
-        self.tape[self.head] = self.tape[self.head].wrapping_increment();
+        self.tape[self.head].wrapping_increment();
         self.instruction_pointer += 1;
         Ok(self.instruction_pointer)
     }
 
     /// Substract 1 to the element where head is pointing to.
     fn wrapped_sub(&mut self) -> Result<usize, VMError> {
-        self.tape[self.head] = self.tape[self.head].wrapping_decrement();
+        self.tape[self.head].wrapping_decrement();
         self.instruction_pointer += 1;
         Ok(self.instruction_pointer)
     }

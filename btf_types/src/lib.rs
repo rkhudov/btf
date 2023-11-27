@@ -1,5 +1,5 @@
 //! Provide types implementation for BF interpreter.
-use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -103,6 +103,8 @@ pub struct BrainFuckProgram {
     filename: PathBuf,
     /// List of instructions with location parsed from file.
     instructions: Vec<IntructionPosition>,
+    /// Mapping for brackets.
+    brackets_map: HashMap<usize, usize>,
 }
 
 impl BrainFuckProgram {
@@ -133,6 +135,7 @@ impl BrainFuckProgram {
         BrainFuckProgram {
             filename: filename.as_ref().to_path_buf(),
             instructions,
+            brackets_map: HashMap::new(),
         }
     }
 
@@ -146,6 +149,15 @@ impl BrainFuckProgram {
         &self.instructions[..]
     }
 
+    pub fn set_brackets_map(&mut self, brackets_map: HashMap<usize, usize>) {
+        self.brackets_map = brackets_map;
+    }
+
+    /// Get list of instructions for BF program.
+    pub fn brackets_map(&self) -> &HashMap<usize, usize> {
+        &self.brackets_map
+    }
+
     /// Parse BF program from file.
     pub fn from_file<T: AsRef<Path>>(file_path: T) -> Result<BrainFuckProgram, Box<dyn Error>> {
         let file_path_ref = file_path.as_ref();
@@ -155,47 +167,34 @@ impl BrainFuckProgram {
     }
 
     /// Validate if brackets are balanced.
-    pub fn validate_brackets(&self) -> Result<(), String> {
-        let mut opened_brackets = Vec::new();
-        let mut closed_brackets = Vec::new();
-        for instruction_position in self.instructions() {
-            match instruction_position.instruction() {
-                RawInstructions::ZeroJump => opened_brackets.push(instruction_position),
+    pub fn validate_brackets(&self) -> Result<HashMap<usize, usize>, String> {
+        let mut brackets_map = HashMap::<usize, usize>::new();
+        let mut opened_brackets = Vec::<(usize, &IntructionPosition)>::new();
+        for (position, instruction) in self.instructions().iter().enumerate() {
+            match instruction.instruction() {
+                RawInstructions::ZeroJump => opened_brackets.push((position, instruction)),
                 RawInstructions::NonZeroJump => {
-                    closed_brackets.push(instruction_position);
-                    if opened_brackets.len() < closed_brackets.len() {
-                        return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), instruction_position.line(), instruction_position.position()));
+                    if let Some(opened_bracket) = opened_brackets.pop() {
+                        brackets_map.insert(opened_bracket.0, position);
+                        brackets_map.insert(position, opened_bracket.0);
+                    } else {
+                        return Err(format!("Error in input file, no open bracket found matching bracket at line {} column {}.", instruction.line(), instruction.position()));
                     }
                 }
                 _ => {}
             }
         }
 
-        match opened_brackets.len().cmp(&closed_brackets.len()) {
-            Ordering::Greater => {
-                let first_bracket = opened_brackets.first();
-                match first_bracket {
-                    None => return Err(format!("Error in input file {}, no open brackets found.", self.filename.display())),
-                    Some(bracket) => return Err(format!("Error in input file {}, no close bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
-                }
-            }
-            Ordering::Less => {
-                let last_bracket = closed_brackets.last();
-                match last_bracket {
-                    None => return Err(format!("Error in input file {}, no closed brackets found.", self.filename.display())),
-                    Some(bracket) => return Err(format!("Error in input file {}, no open bracket found matching bracket at line {} column {}.", self.filename.display(), bracket.line(), bracket.position())),
-                }
-            }
-            Ordering::Equal => {}
+        if let Some((_, instruction)) = opened_brackets.last() {
+            return Err(format!("Error in input file, no close bracket found matching bracket at line {} column {}.", instruction.line(), instruction.position()));
         }
-
-        Ok(())
+        Ok(brackets_map)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf};
 
     use crate::BrainFuckProgram;
 
@@ -234,9 +233,10 @@ mod tests {
         let test_filename = PathBuf::from("testfilename");
         let test_content = "sometext\n><+-.,[]\ncomment <".to_string();
         let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
+        let mapping: HashMap<usize, usize> = HashMap::from([(6, 7), (7, 6)]);
         assert_eq!(
             bf_program.validate_brackets(),
-            Ok(()),
+            Ok(mapping),
             "No errors during program parsing."
         )
     }
@@ -248,7 +248,10 @@ mod tests {
         let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
         assert_eq!(
             bf_program.validate_brackets(),
-            Err("Error in input file testfilename, no close bracket found matching bracket at line 2 column 7.".to_string()),
+            Err(
+                "Error in input file, no close bracket found matching bracket at line 2 column 7."
+                    .to_string()
+            ),
             "Error during program parsing."
         )
     }
@@ -260,7 +263,10 @@ mod tests {
         let bf_program = BrainFuckProgram::new(test_filename.as_path(), test_content);
         assert_eq!(
             bf_program.validate_brackets(),
-            Err("Error in input file testfilename, no open bracket found matching bracket at line 2 column 7.".to_string()),
+            Err(
+                "Error in input file, no open bracket found matching bracket at line 2 column 7."
+                    .to_string()
+            ),
             "Error during program parsing."
         )
     }

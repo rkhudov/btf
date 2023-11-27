@@ -96,11 +96,14 @@ where
     /// Go to the next element in tape. If tape size exceeded, error message is shown.
     fn next_element(&mut self) -> Result<usize, VMError> {
         if self.head + 1 == self.tape.len() {
-            let instruction = &self.program.instructions()[self.instruction_pointer];
-            return Err(VMError::NextElementNotReachable {
-                line: instruction.line(),
-                position: instruction.position(),
-            });
+            if !self.adjust_tape {
+                let instruction = &self.program.instructions()[self.instruction_pointer];
+                return Err(VMError::NextElementNotReachable {
+                    line: instruction.line(),
+                    position: instruction.position(),
+                });
+            }
+            self.tape.push(T::default());
         }
         self.head += 1;
         self.instruction_pointer += 1;
@@ -353,6 +356,24 @@ mod tests {
 
         let mut vm: VirtualMachine<u8> = VirtualMachine::new(&program, None, None);
         assert_eq!(vm.next_element(), Ok(1));
+
+        drop(tmp_file);
+        tmp_dir.close().unwrap();
+    }
+
+    #[test]
+    fn test_adjustable_tape_next_element() {
+        let tmp_dir = TempDir::new("example").unwrap();
+        let file_path = tmp_dir.path().join("my-temporary-note.txt");
+        let tmp_file = File::create(&file_path).unwrap();
+
+        let program = BrainFuckProgram::from_file(&file_path).unwrap();
+
+        let mut vm: VirtualMachine<u8> =
+            VirtualMachine::new(&program, NonZeroUsize::new(1), Some(true));
+        assert_eq!(vm.next_element(), Ok(1));
+        assert_eq!(vm.next_element(), Ok(2));
+        assert_eq!(vm.next_element(), Ok(3));
 
         drop(tmp_file);
         tmp_dir.close().unwrap();
